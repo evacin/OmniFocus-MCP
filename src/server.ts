@@ -169,3 +169,13 @@ process.stdin.on('close', shutdown);
 process.on('SIGTERM', shutdown);
 process.on('SIGHUP', shutdown);
 process.on('SIGINT', shutdown);
+
+// Last-resort orphan guard: signal propagation through the npx/disclaimer
+// wrapper chain is unreliable, and stdin EOF doesn't always fire when the
+// client is force-killed. If our parent client dies we get reparented to
+// launchd/init (ppid 1) — detect that and exit so we don't pile up as orphans
+// holding OmniFocus automation. unref() keeps the timer from blocking exit.
+const parentWatch = setInterval(() => {
+  if (process.ppid === 1) shutdown();
+}, 5000);
+parentWatch.unref();

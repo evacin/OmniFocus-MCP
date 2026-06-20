@@ -1,11 +1,9 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { createDateOutsideTellBlock } from '../../utils/dateFormatting.js';
 import { generateFolderLookupScript } from '../../utils/appleScriptHelpers.js';
-const execAsync = promisify(exec);
+import { runOsascriptFile } from '../../utils/scriptExecution.js';
 
 // Interface for project creation parameters
 export interface AddProjectParams {
@@ -133,8 +131,8 @@ export async function addProject(params: AddProjectParams): Promise<{success: bo
     tempFile = join(tmpdir(), `add_project_${Date.now()}.applescript`);
     writeFileSync(tempFile, script, { encoding: 'utf8' });
 
-    // Execute AppleScript from file
-    const { stdout, stderr } = await execAsync(`osascript "${tempFile}"`);
+    // Execute AppleScript from file (serialized + timed out via shared runner)
+    const { stdout, stderr } = await runOsascriptFile(tempFile);
 
     // Clean up temp file
     try { unlinkSync(tempFile); } catch {}

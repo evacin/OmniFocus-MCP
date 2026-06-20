@@ -1,11 +1,9 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { generateDateAssignmentV2 } from '../../utils/dateFormatting.js';
 import { generateFolderLookupScript, generateProjectLookupScript } from '../../utils/appleScriptHelpers.js';
-const execAsync = promisify(exec);
+import { runOsascriptFile } from '../../utils/scriptExecution.js';
 
 // Status options for tasks and projects
 type TaskStatus = 'incomplete' | 'completed' | 'dropped' | 'skipped';
@@ -469,8 +467,8 @@ export async function editItem(params: EditItemParams): Promise<{
     tempFile = join(tmpdir(), `edit_omnifocus_${Date.now()}.applescript`);
     writeFileSync(tempFile, script);
     
-    // Execute AppleScript from file
-    const { stdout, stderr } = await execAsync(`osascript "${tempFile}"`);
+    // Execute AppleScript from file (serialized + timed out via shared runner)
+    const { stdout, stderr } = await runOsascriptFile(tempFile);
     
     // Clean up temp file
     try {

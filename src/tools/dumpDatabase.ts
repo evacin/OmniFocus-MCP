@@ -73,9 +73,7 @@ export async function dumpDatabase(): Promise<OmnifocusDatabase> {
   try {
     // Execute the OmniFocus script
     const data = await executeOmniFocusScript('@omnifocusDump.js') as OmnifocusDumpData;
-    // wait 1 second
-    await new Promise(resolve => setTimeout(resolve, 1000));
- 
+
     // Create an empty database if no data returned
     if (!data) {
       return {

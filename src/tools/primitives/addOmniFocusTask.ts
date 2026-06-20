@@ -1,10 +1,8 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { writeFileSync, unlinkSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { createDateOutsideTellBlock } from '../../utils/dateFormatting.js';
-const execAsync = promisify(exec);
+import { runOsascriptFile } from '../../utils/scriptExecution.js';
 
 // Interface for task creation parameters
 export interface AddOmniFocusTaskParams {
@@ -223,8 +221,8 @@ export async function addOmniFocusTask(params: AddOmniFocusTaskParams): Promise<
     const tempFile = join(tmpdir(), `omnifocus_add_${Date.now()}.applescript`);
     writeFileSync(tempFile, script, { encoding: 'utf8' });
 
-    // Execute AppleScript from file
-    const { stdout, stderr } = await execAsync(`osascript "${tempFile}"`);
+    // Execute AppleScript from file (serialized + timed out via shared runner)
+    const { stdout, stderr } = await runOsascriptFile(tempFile);
 
     if (stderr) {
       console.error("AppleScript stderr:", stderr);

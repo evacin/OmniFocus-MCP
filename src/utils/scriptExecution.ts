@@ -17,6 +17,40 @@ export function setScriptLogger(logger: Logger): void {
   _logger = logger;
 }
 
+// Kill a stuck osascript well before OmniFocus's default 120s AppleEvent timeout,
+// so a hung call fails fast instead of lingering and congesting OmniFocus for
+// every subsequent caller.
+export const OSASCRIPT_TIMEOUT_MS = 45_000;
+
+// OmniFocus runs all automation on a single thread. Firing concurrent osascript
+// processes just makes them queue against that thread and, under load, cascade
+// into AppleEvent timeouts. Funnel every osascript call this process makes
+// through one in-process mutex so we issue them strictly one at a time.
+let _ofLock: Promise<unknown> = Promise.resolve();
+export function withOmniFocusLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = _ofLock.then(fn, fn);
+  // Keep the chain alive without leaking the previous call's rejection.
+  _ofLock = run.catch(() => {});
+  return run;
+}
+
+// Run `osascript <file>` under the lock with a hard timeout. Shared by every
+// OmniFocus-touching code path so serialization and timeouts apply uniformly.
+export async function runOsascriptFile(
+  tempFile: string,
+  opts: { language?: "JavaScript"; maxBuffer?: number; timeoutMs?: number } = {}
+): Promise<{ stdout: string; stderr: string }> {
+  const lang = opts.language === "JavaScript" ? "-l JavaScript " : "";
+  const cmd = `osascript ${lang}"${tempFile}"`;
+  return withOmniFocusLock(() =>
+    execAsync(cmd, {
+      maxBuffer: opts.maxBuffer ?? MAX_BUFFER,
+      timeout: opts.timeoutMs ?? OSASCRIPT_TIMEOUT_MS,
+      killSignal: "SIGKILL",
+    })
+  );
+}
+
 // Helper function to execute OmniFocus scripts
 export async function executeJXA(script: string): Promise<any[]> {
   const start = Date.now();
@@ -30,10 +64,9 @@ export async function executeJXA(script: string): Promise<any[]> {
     _logger?.debug("scriptExecution", "Executing JXA script");
 
     // Execute the script using osascript
-    const { stdout, stderr } = await execAsync(
-      `osascript -l JavaScript ${tempFile}`,
-      { maxBuffer: MAX_BUFFER }
-    );
+    const { stdout, stderr } = await runOsascriptFile(tempFile, {
+      language: "JavaScript",
+    });
 
     if (stderr) {
       console.error("Script stderr output:", stderr);
@@ -163,10 +196,9 @@ ${scriptContent}`;
     writeFileSync(tempFile, jxaScript);
 
     // Execute the JXA script using osascript
-    const { stdout, stderr } = await execAsync(
-      `osascript -l JavaScript ${tempFile}`,
-      { maxBuffer: MAX_BUFFER }
-    );
+    const { stdout, stderr } = await runOsascriptFile(tempFile, {
+      language: "JavaScript",
+    });
 
     // Clean up the temporary file
     unlinkSync(tempFile);
