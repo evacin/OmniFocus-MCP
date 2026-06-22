@@ -275,3 +275,54 @@ describe('formatFilters', () => {
     expect(result).toBe('review due: true');
   });
 });
+
+// ============================================================
+// generateFieldMapping - attachment fields
+// ============================================================
+describe('generateFieldMapping - attachment fields', () => {
+  it('emits a unified attachments mapping (embedded + linked)', () => {
+    const result = generateFieldMapping('tasks', ['attachments']);
+    expect(result).toContain('attachments:');
+    expect(result).toContain('item.attachments');
+    expect(result).toContain('preferredFilename');
+    expect(result).toContain('item.linkedFileURLs');
+    expect(result).toContain('embedded: true');
+    expect(result).toContain('embedded: false');
+  });
+
+  it('emits linkedFileURLs mapping using the clean URL string', () => {
+    const result = generateFieldMapping('tasks', ['linkedFileURLs']);
+    expect(result).toContain('linkedFileURLs:');
+    expect(result).toContain('item.linkedFileURLs');
+    expect(result).toContain('u.string');
+  });
+
+  it('default task fields do NOT include attachments (opt-in only)', () => {
+    const result = generateFieldMapping('tasks');
+    expect(result).not.toContain('attachments:');
+    expect(result).not.toContain('linkedFileURLs:');
+  });
+});
+
+// ============================================================
+// formatTasks - attachment rendering
+// ============================================================
+describe('formatTasks - attachments', () => {
+  it('renders embedded and linked attachments distinctly', () => {
+    const output = formatTasks([{
+      id: 't1',
+      name: 'Task with files',
+      attachments: [
+        { filename: 'report.pdf', embedded: true, path: null },
+        { filename: 'ref.txt', embedded: false, path: '/Users/me/ref.txt' },
+      ],
+    }] as any);
+    expect(output).toContain('report.pdf (embedded)');
+    expect(output).toContain('ref.txt → /Users/me/ref.txt');
+  });
+
+  it('renders nothing for tasks without the attachments field', () => {
+    const output = formatTasks([{ id: 't2', name: 'No attachments' }] as any);
+    expect(output).not.toContain('[attachments:');
+  });
+});

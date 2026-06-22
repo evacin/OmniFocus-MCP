@@ -30,7 +30,7 @@ export const schema = z.object({
     reviewDue: z.boolean().optional().describe("Filter projects by review status. true = only projects whose next review date is today or in the past (due for review). false = only projects not yet due for review. Only applies to 'projects' entity")
   }).optional().describe("Optional filters to narrow results. ALL filters combine with AND logic (must match all). Within array filters (tags, status) OR logic applies"),
   
-  fields: z.array(z.string()).optional().describe("Specific fields to return (reduces response size). TASK FIELDS: id, name, note, flagged, taskStatus, dueDate, deferDate, plannedDate, effectiveDueDate, effectiveDeferDate, effectivePlannedDate, completionDate, estimatedMinutes, tagNames, tags, projectName, projectId, parentId, childIds, hasChildren, sequential, completedByChildren, inInbox, isRepeating, repetitionRule, modificationDate (or modified), creationDate (or added). PROJECT FIELDS: id, name, status, note, folderName, folderID, sequential, dueDate, deferDate, effectiveDueDate, effectiveDeferDate, completedByChildren, containsSingletonActions, taskCount, tasks, nextReviewDate, reviewInterval, modificationDate, creationDate. FOLDER FIELDS: id, name, path, parentFolderID, status, projectCount, projects, subfolders. NOTE: Date fields use 'added' and 'modified' in OmniFocus API"),
+  fields: z.array(z.string()).optional().describe("Specific fields to return (reduces response size). TASK FIELDS: id, name, note, flagged, taskStatus, dueDate, deferDate, plannedDate, effectiveDueDate, effectiveDeferDate, effectivePlannedDate, completionDate, estimatedMinutes, tagNames, tags, projectName, projectId, parentId, childIds, hasChildren, sequential, completedByChildren, inInbox, isRepeating, repetitionRule, attachments (opt-in: list of {filename, embedded, path} — embedded attachments have path=null, use export_attachment to extract one; linked have the file path), linkedFileURLs (opt-in: linked file:// URLs), modificationDate (or modified), creationDate (or added). PROJECT FIELDS: id, name, status, note, folderName, folderID, sequential, dueDate, deferDate, effectiveDueDate, effectiveDeferDate, completedByChildren, containsSingletonActions, taskCount, tasks, nextReviewDate, reviewInterval, modificationDate, creationDate. FOLDER FIELDS: id, name, path, parentFolderID, status, projectCount, projects, subfolders. NOTE: Date fields use 'added' and 'modified' in OmniFocus API"),
   
   limit: z.number().optional().describe("Maximum number of items to return. Useful for large result sets. Default: no limit"),
   
@@ -226,6 +226,14 @@ function formatTasks(tasks: any[]): string {
     }
     if (task.hasChildren && task.childIds?.length > 0) {
       parts.push(`[children: ${task.childIds.join(', ')}]`);
+    }
+
+    // Attachments (opt-in field)
+    if (task.attachments?.length > 0) {
+      const rendered = task.attachments.map((a: { filename: string; embedded: boolean; path: string | null }) =>
+        a.embedded ? `${a.filename} (embedded)` : `${a.filename} → ${a.path}`
+      );
+      parts.push(`[attachments: ${rendered.join(', ')}]`);
     }
 
     // Metadata dates if requested

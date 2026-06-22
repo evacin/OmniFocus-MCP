@@ -36,6 +36,13 @@ export interface EditItemParams {
   newFolderName?: string;       // New folder to move the project to
   newProjectStatus?: ProjectStatus; // New status for projects
   markReviewed?: boolean;       // Mark the project as reviewed (advances next review date)
+
+  // Attachment fields (tasks only). Handled by the attachments primitive via a
+  // separate OmniJS call — NOT by generateAppleScript, which ignores them.
+  addAttachmentPaths?: string[];        // Absolute paths to embed
+  addLinkedFilePaths?: string[];        // Absolute paths to link
+  removeAttachmentFilenames?: string[]; // Embedded attachment filenames to remove
+  removeLinkedFilePaths?: string[];     // Linked file paths/URLs to remove
 }
 
 /**

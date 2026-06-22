@@ -190,7 +190,19 @@
                 projectID: projectID,
                 parentTaskID: task.parent ? task.parent.id.primaryKey : null,
                 children: task.children.map(child => child.id.primaryKey),
-                inInbox: task.inInbox
+                inInbox: task.inInbox,
+                // Attachment metadata only — filenames/paths, never bytes (cheap;
+                // uses preferredFilename / url.path). Embedded have path=null.
+                attachments: (() => {
+                  try {
+                    const emb = task.attachments ? task.attachments.map(a => ({ filename: a.preferredFilename, embedded: true, path: null })) : [];
+                    const lnk = task.linkedFileURLs ? task.linkedFileURLs.map(u => ({ filename: (u.path ? u.path.split("/").pop() : u.string), embedded: false, path: u.path })) : [];
+                    return emb.concat(lnk);
+                  } catch (e) { return []; }
+                })(),
+                linkedFileURLs: (() => {
+                  try { return task.linkedFileURLs ? task.linkedFileURLs.map(u => u.string) : []; } catch (e) { return []; }
+                })()
               };
 
               // Add task to export

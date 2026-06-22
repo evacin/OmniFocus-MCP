@@ -1,3 +1,13 @@
+// Metadata for a single attachment on a task. `path` is the file URL for a
+// linked attachment, or null for an embedded one (whose bytes live in the
+// OmniFocus database and have no persistent on-disk path — use export_attachment
+// to materialize one).
+export interface AttachmentMetadata {
+    filename: string;
+    embedded: boolean;
+    path: string | null;
+}
+
 export interface OmnifocusTask {
     id: string;
     name: string;
@@ -35,7 +45,7 @@ export interface OmnifocusTask {
     repetitionMethod: string | null; // Fixed or due-based repetition
     
     // Attachments
-    attachments: any[]; // FileWrapper representations
+    attachments: AttachmentMetadata[];
     linkedFileURLs: string[];
     
     // Notifications

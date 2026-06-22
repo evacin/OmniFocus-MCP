@@ -614,6 +614,16 @@ function generateFieldMapping(entity: string, fields?: string[]): string {
       return `reviewInterval: formatReviewInterval(item.reviewInterval)`;
     } else if (field === 'note') {
       return `note: item.note || ""`;
+    } else if (field === 'attachments') {
+      // Unified, path-centric view: embedded (no path) + linked (decoded path).
+      // Cheap — uses preferredFilename / url.path, never reads attachment bytes.
+      return `attachments: (() => {
+            const emb = item.attachments ? item.attachments.map(a => ({ filename: a.preferredFilename, embedded: true, path: null })) : [];
+            const lnk = item.linkedFileURLs ? item.linkedFileURLs.map(u => ({ filename: (u.path ? u.path.split("/").pop() : u.string), embedded: false, path: u.path })) : [];
+            return emb.concat(lnk);
+          })()`;
+    } else if (field === 'linkedFileURLs') {
+      return `linkedFileURLs: item.linkedFileURLs ? item.linkedFileURLs.map(u => u.string) : []`;
     } else {
       // Default: try to access the field directly
       return `${field}: item.${field} !== undefined ? item.${field} : null`;

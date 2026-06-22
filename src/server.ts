@@ -19,6 +19,7 @@ import * as queryOmniFocusTool from './tools/definitions/queryOmnifocus.js';
 import * as listPerspectivesTool from './tools/definitions/listPerspectives.js';
 import * as getPerspectiveViewTool from './tools/definitions/getPerspectiveView.js';
 import * as listTagsTool from './tools/definitions/listTags.js';
+import * as exportAttachmentTool from './tools/definitions/exportAttachment.js';
 
 // Create an MCP server with instructions
 const server = new McpServer(
@@ -97,7 +98,7 @@ server.tool(
 
 server.tool(
   "edit_item",
-  "Edit an existing task or project in OmniFocus. This is also how you MOVE/reassign an existing task: set newProjectName to a project name/path to move it into that project, or to \"\" / \"inbox\" to move it to the inbox. Whenever a task already exists, prefer moving it with this tool over creating a new one via add_omnifocus_task, so you never create duplicates.",
+  "Edit an existing task or project in OmniFocus. This is also how you MOVE/reassign an existing task: set newProjectName to a project name/path to move it into that project, or to \"\" / \"inbox\" to move it to the inbox. Whenever a task already exists, prefer moving it with this tool over creating a new one via add_omnifocus_task, so you never create duplicates. This is also how you ATTACH or DETACH files on a task (tasks only): use addAttachmentPaths (embed a copy of the file) or addLinkedFilePaths (store a reference), and removeAttachmentFilenames / removeLinkedFilePaths to detach.",
   editItemTool.schema.shape,
   editItemTool.handler
 );
@@ -142,6 +143,13 @@ server.tool(
   "List all tags in OmniFocus with their hierarchy. Useful for discovering available tags before creating or editing tasks.",
   listTagsTool.schema.shape,
   listTagsTool.handler
+);
+
+server.tool(
+  "export_attachment",
+  "Export (extract to disk) an embedded attachment from a task and return the saved file path — the programmatic equivalent of OmniFocus's \"Open in Finder.\" Use the attachment filename (from query_omnifocus 'attachments' field), or \"all\" to export every embedded attachment. Tasks only. Linked attachments already have a path (the 'path' field from query) and don't need exporting.",
+  exportAttachmentTool.schema.shape,
+  exportAttachmentTool.handler
 );
 
 // Start the MCP server
